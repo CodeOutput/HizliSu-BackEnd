@@ -17,12 +17,14 @@ namespace HizliSu.Address
     public class UserAddressAppService : ApplicationService, IUserAddressAppService
     {
         private readonly IRepository<UserAddress, long> _userAddressRepository;
+        private readonly IRepository<Orders.Order, long> _orderRepository;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
 
-        public UserAddressAppService(IUnitOfWorkManager unitOfWorkManager, IRepository<UserAddress, long> userAddressRepository)
+        public UserAddressAppService(IUnitOfWorkManager unitOfWorkManager, IRepository<UserAddress, long> userAddressRepository, IRepository<Orders.Order, long> orderRepository)
         {
             _unitOfWorkManager = unitOfWorkManager;
             _userAddressRepository = userAddressRepository;
+            _orderRepository = orderRepository;
         }
   
         public async Task<ListResultDto<UserAddressDto>> GetAuthUserAddressListAsync()
@@ -31,7 +33,13 @@ namespace HizliSu.Address
             List<UserAddress> userAddressList = await _userAddressRepository.GetAllIncluding(i=>i.City,ii=>ii.District,b=>b.Neighborhood).Where(x=>x.UserId == AbpSession.UserId && x.IsActive).OrderBy(x=>x.Title).ToListAsync();
             return new ListResultDto<UserAddressDto>(ObjectMapper.Map<List<UserAddressDto>>(userAddressList));
         }
-           
+        public async Task<UserAddressDto> GetAuthUserAddressDetailAsync(long addressId)
+        {
+
+            UserAddress userAddress = await _userAddressRepository.GetAllIncluding(i => i.City, ii => ii.District, b => b.Neighborhood)
+                .FirstOrDefaultAsync(x => x.UserId == AbpSession.UserId && x.Id == addressId);
+            return ObjectMapper.Map<UserAddressDto>(userAddress);
+        }
 
         public async Task<UserAddressDto> SaveUserAddressAsync(UserAddressRequest request)
         {
@@ -197,7 +205,7 @@ namespace HizliSu.Address
             using (var unitOfWork = _unitOfWorkManager.Begin())
             {
 
-                await _userAddressRepository.InsertAndGetIdAsync(userAddress);
+                await _userAddressRepository.UpdateAsync(userAddress);
                 await unitOfWork.CompleteAsync();
             }
 
@@ -212,8 +220,26 @@ namespace HizliSu.Address
             {
                 throw new UserFriendlyException("Kayıt bulunamadı!");
             }
-            await _userAddressRepository.DeleteAsync(userAddressId);
-            return ObjectMapper.Map<UserAddressDto>(userAddress);
+
+            if (!AbpSession.UserId.HasValue || AbpSession.UserId.Value < 1)
+            {
+                throw new UserFriendlyException("Kullanıcı bulunamadı!");
+            }
+
+            var orderAdressList = await _orderRepository.GetAllListAsync(x => x.UserAddressId == userAddressId);
+            if (orderAdressList.Any())
+            {
+                throw new UserFriendlyException("Siparişte kayıtlı olan adresi silemezsiniz!");
+            }
+            var userAddressList = await _userAddressRepository.GetAllListAsync(x =>
+                x.Id != userAddressId && x.UserId == AbpSession.UserId.Value && x.IsActive);
+            if (userAddressList.Any())
+            {
+                await _userAddressRepository.DeleteAsync(userAddressId);
+                return ObjectMapper.Map<UserAddressDto>(userAddress);
+            }
+
+            throw new UserFriendlyException("En az bir adet adres kaydı sistemde bulunmalıdır!");
         }
     }
 }
