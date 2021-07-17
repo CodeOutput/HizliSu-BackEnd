@@ -1,9 +1,12 @@
 using System.Globalization;
 using System.Threading.Tasks;
+using Abp.Authorization;
 using Abp.Configuration;
+using Abp.UI;
 using Abp.Zero.Configuration;
 using HizliSu.Authorization.Accounts.Dto;
 using HizliSu.Authorization.Users;
+using HizliSu.Users.Dto;
 
 namespace HizliSu.Authorization.Accounts
 {
@@ -13,11 +16,13 @@ namespace HizliSu.Authorization.Accounts
         public const string PasswordRegex = "(?=^.{8,}$)(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\\s)[0-9a-zA-Z!@#$%^&*()]*$";
 
         private readonly UserRegistrationManager _userRegistrationManager;
+        private readonly UserManager _userManager;
 
         public AccountAppService(
-            UserRegistrationManager userRegistrationManager)
+            UserRegistrationManager userRegistrationManager, UserManager userManager)
         {
             _userRegistrationManager = userRegistrationManager;
+            _userManager = userManager;
         }
 
         public async Task<IsTenantAvailableOutput> IsTenantAvailable(IsTenantAvailableInput input)
@@ -56,6 +61,40 @@ namespace HizliSu.Authorization.Accounts
             {
                 CanLogin = user.IsActive && (user.IsEmailConfirmed || !isEmailConfirmationRequiredForLogin)
             };
+        }
+
+        [AbpAuthorize()]
+        public async Task<UserDto> GetAuthUserInfo()
+        {
+            if (!AbpSession.UserId.HasValue)
+            {
+                throw new UserFriendlyException("Kullanýcý bulunamadý!");
+            } 
+            var user = await _userManager.GetUserByIdAsync(AbpSession.UserId.Value);
+            return ObjectMapper.Map<UserDto>(user);
+        }
+
+        public async Task<UserDto> UpdateUser(UserDto input)
+        {
+            input.UserName = input.EmailAddress;
+            if (!AbpSession.UserId.HasValue)
+            {
+                throw new UserFriendlyException("Kullanýcý bulunamadý!");
+            }
+            var user = await _userManager.GetUserByIdAsync(AbpSession.UserId.Value);
+
+            MapToEntity(input, user);
+
+            CheckErrors(await _userManager.UpdateAsync(user));
+
+
+            return input;
+        }
+
+        protected void MapToEntity(UserDto input, User user)
+        {
+            ObjectMapper.Map(input, user);
+            user.SetNormalizedNames();
         }
     }
 }

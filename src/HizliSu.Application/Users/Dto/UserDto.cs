@@ -34,7 +34,7 @@ namespace HizliSu.Users.Dto
         public DateTime? LastLoginTime { get; set; }
 
         public DateTime CreationTime { get; set; }
-
+        public string PhoneNumber { get; set; }
         public string[] RoleNames { get; set; }
     }
 }
