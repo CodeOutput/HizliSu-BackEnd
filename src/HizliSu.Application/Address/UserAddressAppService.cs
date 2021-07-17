@@ -96,7 +96,7 @@ namespace HizliSu.Address
 
 
 
-            var userAddress = await _userAddressRepository.FirstOrDefaultAsync(x => x.Title.ToLower() == request.Title.ToLower());
+            var userAddress = await _userAddressRepository.FirstOrDefaultAsync(x =>x.UserId==AbpSession.UserId.Value && x.Title.ToLower() == request.Title.ToLower());
             if (userAddress == null)
             {
                 userAddress = new UserAddress()
@@ -179,7 +179,7 @@ namespace HizliSu.Address
                 throw new UserFriendlyException("Mahalle seçiniz!");
             }
 
-            var userTitleHas = await _userAddressRepository.FirstOrDefaultAsync(x =>x.Id != userAddressId && x.Title.ToLower() == request.Title.ToLower());
+            var userTitleHas = await _userAddressRepository.FirstOrDefaultAsync(x =>x.Id != userAddressId && x.UserId == AbpSession.UserId.Value && x.Title.ToLower() == request.Title.ToLower());
             if (userTitleHas != null)
             {
                 throw new UserFriendlyException("Adres başlığı zaten daha önceden eklenmiştir.");

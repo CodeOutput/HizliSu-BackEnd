@@ -59,7 +59,7 @@ namespace HizliSu.Users
             CheckCreatePermission();
 
             var user = ObjectMapper.Map<User>(input);
-            user.UserName = input.EmailAddress.ToLower(new CultureInfo("en-US", false));
+            user.UserName = input.UserName.ToLower(new CultureInfo("en-US", false));
             user.EmailAddress = input.EmailAddress.ToLower(new CultureInfo("en-US", false));
 
             user.TenantId = AbpSession.TenantId;

@@ -44,12 +44,12 @@ namespace HizliSu.Authorization.Accounts
         public async Task<RegisterOutput> Register(RegisterInput input)
         {
             input.EmailAddress = input.EmailAddress.ToLower(new CultureInfo("en-US", false));
-            input.UserName = input.EmailAddress.ToLower(new CultureInfo("en-US", false));
+            input.UserName = input.UserName.ToLower(new CultureInfo("en-US", false));
             var user = await _userRegistrationManager.RegisterAsync(
                 input.Name,
                 input.Surname,
                 input.EmailAddress,
-                input.EmailAddress,
+                input.UserName,
                 input.Password,
                 true, // Assumed email address is always confirmed. Change this if you want to implement email confirmation.
                 input.PhoneNumber
@@ -76,7 +76,7 @@ namespace HizliSu.Authorization.Accounts
 
         public async Task<UserDto> UpdateUser(UserDto input)
         {
-            input.UserName = input.EmailAddress;
+            //input.UserName = input.EmailAddress;
             if (!AbpSession.UserId.HasValue)
             {
                 throw new UserFriendlyException("Kullanýcý bulunamadý!");

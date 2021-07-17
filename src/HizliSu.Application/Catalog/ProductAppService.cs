@@ -43,7 +43,7 @@ namespace HizliSu.Catalog
         public async Task<ProductDto> GetProductDetailAsync(long id)
         {
             Product product = await _productRepository
-                .GetAllIncluding(c => c.Category, i => i.Image, i => i.Manufacturer, i => i.Facility)
+                .GetAllIncluding(c => c.Category, i => i.Image, i => i.Manufacturer, i => i.Facility, i => i.Facility.FacilityAttributes)
                 .FirstOrDefaultAsync(x => x.Id == id);
             //var product = await _productRepository.GetAllIncluding(i => i.Image).FirstOrDefaultAsync(x => x.Id == id);
             if (product == null)
