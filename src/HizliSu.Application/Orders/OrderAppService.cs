@@ -12,6 +12,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Abp.AutoMapper;
+using HizliSu.Authorization;
 
 namespace HizliSu.Orders
 {
@@ -19,18 +21,20 @@ namespace HizliSu.Orders
     public class OrderAppService : ApplicationService, IOrderAppService
     {
         private readonly IRepository<Order, long> _orderRepository;
+        private readonly IRepository<OrderStatus, long> _orderStatusRepository;
         private readonly IRepository<OrderItem, long> _orderItemRepository;
         private readonly IRepository<Product, long> _productRepository;
         private readonly IRepository<Cart, long> _cartRepository;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
 
-        public OrderAppService(IUnitOfWorkManager unitOfWorkManager, IRepository<Order, long> orderRepository, IRepository<Cart, long> cartRepository, IRepository<Product, long> productRepository, IRepository<OrderItem, long> orderItemRepository)
+        public OrderAppService(IUnitOfWorkManager unitOfWorkManager, IRepository<Order, long> orderRepository, IRepository<Cart, long> cartRepository, IRepository<Product, long> productRepository, IRepository<OrderItem, long> orderItemRepository, IRepository<OrderStatus, long> orderStatusRepository)
         {
             _unitOfWorkManager = unitOfWorkManager;
             _orderRepository = orderRepository;
             _cartRepository = cartRepository;
             _productRepository = productRepository;
             _orderItemRepository = orderItemRepository;
+            _orderStatusRepository = orderStatusRepository;
         }
 
         public async Task<ListResultDto<OrderDto>> GetOrderListAsync()
@@ -41,6 +45,78 @@ namespace HizliSu.Orders
                 .Where(x => x.UserId == userId)
                 .OrderByDescending(x => x.CreationTime).ToListAsync();
             return new ListResultDto<OrderDto>(ObjectMapper.Map<List<OrderDto>>(orderList));
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Orders)]
+        public async Task<ListResultDto<OrderDto>> GetOrderPagingListAsync(OrderPagingCo input)
+        {
+            var query = _orderRepository
+                .GetAllIncluding(
+                    c => c.OrderStatus, 
+                    b => b.UserAddress, c => c.UserAddress.City, 
+                    e => e.UserAddress.District, 
+                    f => f.UserAddress.Neighborhood,
+                    g=>g.User)
+                .OrderByDescending(x => x.CreationTime).AsQueryable();
+
+ 
+                if (!string.IsNullOrEmpty(input.OrderNote))
+                {
+                    query = query.Where(x => x.OrderNote !=null && EF.Functions.Like(x.OrderNote.ToLower(), "%" + input.OrderNote.ToLower() + "%"));
+                }
+                 
+                if (!string.IsNullOrEmpty(input.Name))
+                {
+                    query = query.Where(x =>  EF.Functions.Like(x.User.Name.ToLower(), "%" + input.Name.ToLower() + "%"));
+                }
+                 
+                if (!string.IsNullOrEmpty(input.Surname))
+                {
+                    query = query.Where(x => EF.Functions.Like(x.User.Surname.ToLower(), "%" + input.Surname.ToLower() + "%"));
+                }
+                 
+                if (!string.IsNullOrEmpty(input.DistrictName))
+                {
+                    query = query.Where(x => EF.Functions.Like(x.UserAddress.District.Name.ToLower(), "%" + input.DistrictName.ToLower() + "%"));
+                }
+                 
+                if (!string.IsNullOrEmpty(input.NeighborhoodName))
+                {
+                    query = query.Where(x => EF.Functions.Like(x.UserAddress.Neighborhood.Name.ToLower(), "%" + input.NeighborhoodName.ToLower() + "%"));
+                }
+                 
+ 
+                if (input.Id.HasValue)
+                {
+                    query = query.Where(x => x.Id ==input.Id.Value);
+                }
+                             
+ 
+                if (input.UserId.HasValue)
+                {
+                    query = query.Where(x => x.UserId ==input.UserId.Value);
+                }
+                
+                if (input.OrderStatusId.HasValue)
+                {
+                    query = query.Where(x => x.OrderStatusId ==input.OrderStatusId.Value);
+                }
+                             
+                if (input.CreationTime.HasValue)
+                {
+                    query = query.Where(x => x.CreationTime.Date ==input.CreationTime.Value.Date);
+                }
+
+
+                input.PageNo = input.PageNo < 0 ? 0 : input.PageNo;
+                var itemsPerPage = input.ResultCount < 1 ? 20 : input.ResultCount;
+
+                //Total number obtained
+                var queryCount = await query.CountAsync();
+                //Default Paging Method
+                var queryList = await query.Skip(input.PageNo * itemsPerPage).Take(itemsPerPage).ToListAsync();
+
+                return new PagedResultDto<OrderDto>(queryCount, queryList.MapTo<List<OrderDto>>());
         }
 
         public async Task<OrderDto> GetOrderDetailAsync(long orderId)
@@ -169,6 +245,13 @@ namespace HizliSu.Orders
             await _orderRepository.DeleteAsync(orderId);
 
             return ObjectMapper.Map<OrderDto>(order);
+        }
+
+        // orderstatus
+        public async Task<ListResultDto<OrderStatusDto>> GetOrderStatusListAsync()
+        { 
+            List<OrderStatus> orderStatusList = (await _orderStatusRepository.GetAllListAsync()).OrderBy(x => x.Id).ToList();
+            return new ListResultDto<OrderStatusDto>(ObjectMapper.Map<List<OrderStatusDto>>(orderStatusList));
         }
     }
 }

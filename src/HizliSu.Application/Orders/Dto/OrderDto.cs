@@ -1,8 +1,6 @@
 ﻿using Abp.Application.Services.Dto;
 using Abp.AutoMapper;
-using HizliSu.Address;
 using HizliSu.Address.Dto;
-using HizliSu.Authorization.Users;
 using HizliSu.Users.Dto;
 
 namespace HizliSu.Orders.Dto
