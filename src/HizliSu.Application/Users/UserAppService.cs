@@ -197,7 +197,7 @@ namespace HizliSu.Users
             var user = await _userManager.FindByIdAsync(AbpSession.GetUserId().ToString());
             if (user == null)
             {
-                throw new Exception("There is no current user!");
+                throw new Exception("Kullanıcı bulunamadı!");
             }
             
             if (await _userManager.CheckPasswordAsync(user, input.CurrentPassword))
@@ -208,7 +208,7 @@ namespace HizliSu.Users
             {
                 CheckErrors(IdentityResult.Failed(new IdentityError
                 {
-                    Description = "Incorrect password."
+                    Description = "Hatalı şifre"
                 }));
             }
 

@@ -1,12 +1,15 @@
+using System;
 using System.Globalization;
 using System.Threading.Tasks;
 using Abp.Authorization;
 using Abp.Configuration;
+using Abp.Runtime.Session;
 using Abp.UI;
 using Abp.Zero.Configuration;
 using HizliSu.Authorization.Accounts.Dto;
 using HizliSu.Authorization.Users;
 using HizliSu.Users.Dto;
+using Microsoft.AspNetCore.Identity;
 
 namespace HizliSu.Authorization.Accounts
 {
@@ -90,7 +93,30 @@ namespace HizliSu.Authorization.Accounts
 
             return input;
         }
+        public async Task<bool> ChangePassword(ChangePasswordDto input)
+        {
+            await _userManager.InitializeOptionsAsync(AbpSession.TenantId);
 
+            var user = await _userManager.FindByIdAsync(AbpSession.GetUserId().ToString());
+            if (user == null)
+            {
+                throw new UserFriendlyException("Kullanýcý bulunamadý!");
+            }
+
+            if (await _userManager.CheckPasswordAsync(user, input.CurrentPassword))
+            {
+                CheckErrors(await _userManager.ChangePasswordAsync(user, input.NewPassword));
+            }
+            else
+            {
+                CheckErrors(IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Hatalý þifre"
+                }));
+            }
+
+            return true;
+        }
         protected void MapToEntity(UserDto input, User user)
         {
             ObjectMapper.Map(input, user);

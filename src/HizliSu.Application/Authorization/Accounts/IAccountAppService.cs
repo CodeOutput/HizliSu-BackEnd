@@ -13,5 +13,6 @@ namespace HizliSu.Authorization.Accounts
 
         Task<UserDto> GetAuthUserInfo();
         Task<UserDto> UpdateUser(UserDto dto);
+        Task<bool> ChangePassword(ChangePasswordDto input);
     }
 }
