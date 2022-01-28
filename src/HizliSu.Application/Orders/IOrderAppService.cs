@@ -16,9 +16,12 @@ namespace HizliSu.Orders
         Task<OrderDto> DeleteOrderAsync(long id);
         
         
-        //
+        // admin panel
         Task<ListResultDto<OrderDto>> GetOrderPagingListAsync(OrderPagingCo input);
+        Task<OrderDto> GetOrderDetailForAdminAsync(long orderId);
+        Task<OrderDto> UpdateOrderStatusForAdminAsync(long orderId, OrderDto input);
 
+        Task<ListResultDto<OrderItemDto>> GetOrderItemListForAdminAsync(long orderId);
         //
         Task<ListResultDto<OrderStatusDto>> GetOrderStatusListAsync();
     }
