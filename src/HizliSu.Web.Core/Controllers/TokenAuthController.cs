@@ -52,21 +52,30 @@ namespace HizliSu.Controllers
         [HttpPost]
         public async Task<AuthenticateResultModel> Authenticate([FromBody] AuthenticateModel model)
         {
-            var loginResult = await GetLoginResultAsync(
-                model.UserNameOrEmailAddress,
-                model.Password,
-                GetTenancyNameOrNull()
-            );
-
-            var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
-
-            return new AuthenticateResultModel
+            try
             {
-                AccessToken = accessToken,
-                EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
-                ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
-                UserId = loginResult.User.Id
-            };
+                var loginResult = await GetLoginResultAsync(
+                    model.UserNameOrEmailAddress,
+                    model.Password,
+                    GetTenancyNameOrNull()
+                );
+
+                var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
+
+                return new AuthenticateResultModel
+                {
+                    AccessToken = accessToken,
+                    EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
+                    ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
+                    UserId = loginResult.User.Id
+                };
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
         }
 
         [HttpGet]
